@@ -10,15 +10,6 @@ function createServer() {
   const server = http.createServer((req, res) => {
     const url = req.url;
 
-    if (!url.startsWith('/file')) {
-      res.setHeader('content-type', 'text/plain');
-      res.writeHead(400);
-
-      res.end('Error: Attempt to access files outside public folder');
-
-      return;
-    }
-
     if (url.indexOf('//') !== -1) {
       res.setHeader('content-type', 'text/plain');
       res.writeHead(404);
@@ -28,16 +19,30 @@ function createServer() {
       return;
     }
 
-    if (url === '/file') {
-      res.setHeader('content-type', 'text/plain');
-      res.writeHead(200);
+    let filePath = '';
 
-      res.end('Hint message: Routes not starting with /file/');
+    if (url === '/file') {
+      filePath = path.resolve(
+        __dirname,
+        url.replace('/file', '../public/index.html'),
+      );
+    } else if (url === '/file/') {
+      filePath = path.resolve(
+        __dirname,
+        url.replace('/file/', '../public/index.html'),
+      );
+    } else {
+      filePath = path.resolve(__dirname, url.replace('/file', '../public'));
+    }
+
+    if (filePath.indexOf('public') === -1) {
+      res.setHeader('content-type', 'text/plain');
+      res.writeHead(400);
+
+      res.end('Error: Attempt to access files outside public folder');
 
       return;
     }
-
-    const filePath = path.resolve(__dirname, url.replace('/file', '../public'));
 
     if (!fs.existsSync(filePath)) {
       res.setHeader('content-type', 'text/plain');
@@ -49,6 +54,8 @@ function createServer() {
     }
 
     const fileContent = fs.readFileSync(filePath, 'utf8');
+
+    res.setHeader('content-type', 'text/plain');
 
     res.writeHead(200);
 
